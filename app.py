@@ -1,14 +1,35 @@
 from flask import Flask, request, jsonify, send_file, render_template
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.service import Service
+import requests
+from bs4 import BeautifulSoup
 from groq import Groq
 from docx import Document
-import time
 
 app = Flask(__name__)
+
+def web_tara(sorgu):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
+    }
+    url = f"https://duckduckgo.com/html/?q={sorgu}"
+    response = requests.get(url, headers=headers)
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    urls = []
+    for a in soup.find_all("a", class_="result__a")[:3]:
+        urls.append(a["href"])
+
+    tum_icerik = ""
+    for url in urls:
+        try:
+            r = requests.get(url, headers=headers, timeout=5)
+            s = BeautifulSoup(r.text, "html.parser")
+            for p in s.find_all("p")[:10]:
+                if p.text:
+                    tum_icerik += p.text + "\n"
+        except:
+            pass
+
+    return urls, tum_icerik
 
 @app.route("/")
 def index():
@@ -20,34 +41,7 @@ def tara():
     api_key = data["api_key"]
     sorgu = data["sorgu"]
 
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service)
-
-    driver.get("https://duckduckgo.com")
-    time.sleep(3)
-
-    arama_kutusu = driver.find_element(By.NAME, "q")
-    arama_kutusu.send_keys(sorgu)
-    arama_kutusu.send_keys(Keys.RETURN)
-    time.sleep(4)
-
-    linkler = driver.find_elements(By.CSS_SELECTOR, "a[data-testid='result-title-a']")
-    urls = []
-    for link in linkler[:3]:
-        url = link.get_attribute("href")
-        if url:
-            urls.append(url)
-
-    tum_icerik = ""
-    for url in urls:
-        driver.get(url)
-        time.sleep(3)
-        paragraflar = driver.find_elements(By.TAG_NAME, "p")
-        for p in paragraflar[:10]:
-            if p.text:
-                tum_icerik += p.text + "\n"
-
-    driver.quit()
+    urls, tum_icerik = web_tara(sorgu)
 
     groq_client = Groq(api_key=api_key)
     cevap = groq_client.chat.completions.create(
