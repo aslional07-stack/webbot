@@ -10,7 +10,8 @@ def web_tara(sorgu):
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
     }
-    url = f"https://duckduckgo.com/html/?q={sorgu}"
+
+    url = f"https://html.duckduckgo.com/html/?q={sorgu}"
     response = requests.get(url, headers=headers)
     soup = BeautifulSoup(response.text, "html.parser")
 
@@ -43,6 +44,9 @@ def tara():
 
     urls, tum_icerik = web_tara(sorgu)
 
+    if not tum_icerik:
+        tum_icerik = "Icerik bulunamadi."
+
     groq_client = Groq(api_key=api_key)
     cevap = groq_client.chat.completions.create(
         model="llama-3.3-70b-versatile",
@@ -72,4 +76,3 @@ def indir():
 
 if __name__ == "__main__":
     app.run(debug=True)
- 
