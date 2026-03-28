@@ -3,8 +3,19 @@ import requests
 from bs4 import BeautifulSoup
 from groq import Groq
 from docx import Document
+from urllib.parse import unquote, urlparse, parse_qs
 
 app = Flask(__name__)
+
+def gercek_url_al(duckduckgo_url):
+    try:
+        parsed = urlparse(duckduckgo_url)
+        params = parse_qs(parsed.query)
+        if "uddg" in params:
+            return unquote(params["uddg"][0])
+    except:
+        pass
+    return duckduckgo_url
 
 def web_tara(sorgu):
     headers = {
@@ -17,15 +28,16 @@ def web_tara(sorgu):
 
     urls = []
     for a in soup.find_all("a", class_="result__a")[:3]:
-        urls.append(a["href"])
+        gercek = gercek_url_al(a["href"])
+        urls.append(gercek)
 
     tum_icerik = ""
     for url in urls:
         try:
-            r = requests.get(url, headers=headers, timeout=5)
+            r = requests.get(url, headers=headers, timeout=8)
             s = BeautifulSoup(r.text, "html.parser")
-            for p in s.find_all("p")[:10]:
-                if p.text:
+            for p in s.find_all("p")[:15]:
+                if p.text and len(p.text) > 30:
                     tum_icerik += p.text + "\n"
         except:
             pass
@@ -45,7 +57,7 @@ def tara():
     urls, tum_icerik = web_tara(sorgu)
 
     if not tum_icerik:
-        tum_icerik = "Icerik bulunamadi."
+        tum_icerik = "Sitelerden icerik alinamadi."
 
     groq_client = Groq(api_key=api_key)
     cevap = groq_client.chat.completions.create(
@@ -53,7 +65,7 @@ def tara():
         messages=[
             {
                 "role": "user",
-                "content": f"Asagidaki metni Turkce olarak ozetle:\n\n{tum_icerik[:3000]}"
+                "content": f"Asagidaki metni Turkce olarak ozetle ve ana noktalari listele:\n\n{tum_icerik[:3000]}"
             }
         ]
     )
