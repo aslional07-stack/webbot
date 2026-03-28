@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Tarama Botu</title>
+    <style>
+        body { font-family: Arial; max-width: 600px; margin: 50px auto; padding: 20px; background: #f5f5f5; }
+        h1 { color: #333; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #4CAF50; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; }
+        button:hover { background: #45a049; }
+        #durum { margin-top: 20px; padding: 15px; border-radius: 5px; display: none; }
+        .basarili { background: #d4edda; color: #155724; }
+        .yukleniyor { background: #fff3cd; color: #856404; }
+        #indir { display: none; margin-top: 10px; padding: 15px; background: #007bff; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; width: 100%; }
+    </style>
+</head>
+<body>
+    <h1>🤖 Web Tarama Botu</h1>
+    <input type="text" id="api_key" placeholder="Groq API Anahtarınız" />
+    <input type="text" id="sorgu" placeholder="Arama sorgusu (örn: python nedir)" />
+    <button onclick="baslat()">🚀 Başlat</button>
+    <div id="durum"></div>
+    <button id="indir" onclick="indir()">📄 Raporu İndir</button>
+
+    <script>
+        async function baslat() {
+            const api_key = document.getElementById("api_key").value;
+            const sorgu = document.getElementById("sorgu").value;
+
+            if (!api_key || !sorgu) {
+                alert("Lütfen API anahtarı ve arama sorgusu girin!");
+                return;
+            }
+
+            const durum = document.getElementById("durum");
+            durum.style.display = "block";
+            durum.className = "yukleniyor";
+            durum.innerHTML = "⏳ Bot çalışıyor, lütfen bekleyin...";
+            document.getElementById("indir").style.display = "none";
+
+            const response = await fetch("/tara", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ api_key, sorgu })
+            });
+
+            const data = await response.json();
+
+            if (data.durum === "tamam") {
+                durum.className = "basarili";
+                durum.innerHTML = "✅ Rapor hazır!";
+                document.getElementById("indir").style.display = "block";
+            }
+        }
+
+        function indir() {
+            window.location.href = "/indir";
+        }
+    </script>
+</body>
+</html>
